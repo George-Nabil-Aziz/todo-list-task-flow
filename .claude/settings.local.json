@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(squad new-plan *)",
+      "Bash(npm test *)",
+      "Bash(curl -s -X POST http://localhost:4000/api/auth/register -H \"Content-Type: application/json\" -d '{\"email\":\"user1@test.com\",\"password\":\"password123\"}')",
+      "Bash(powershell -Command \"Get-CimInstance Win32_Process | Where-Object { \\\\$_.CommandLine -like '*src/index.js*' -or \\\\$_.CommandLine -like '*nodemon*' } | Select-Object ProcessId, CommandLine | Format-List\")",
+      "Bash(powershell -Command \"Stop-Process -Id 12292,20800,9480 -Force -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 500; Get-CimInstance Win32_Process | Where-Object { \\\\$_.CommandLine -like '*src/index.js*' -or \\\\$_.CommandLine -like '*nodemon*' } | Select-Object ProcessId\")",
+      "Bash(powershell -Command \"netstat -ano | findstr :4000\")",
+      "Bash(squad new-story *)",
+      "Bash(curl *)"
+    ]
+  }
+}
