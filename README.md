@@ -1,336 +1,930 @@
 # TaskFlow — Full-Stack Todo List Application
 
-A full-stack task manager with per-user accounts, JWT authentication, task priorities, and a dark-mode-capable, professionally styled UI. Built with a React (Vite) frontend and an Express backend, developed story-by-story using the [squad-kit](.squad/) planning workflow.
+![React](https://img.shields.io/badge/React-18.3.1-61DAFB?logo=react\&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-5.3.1-646CFF?logo=vite\&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-Express%204.19.2-339933?logo=node.js\&logoColor=white)
+![JWT](https://img.shields.io/badge/Auth-JWT%20%2B%20bcrypt-000000?logo=jsonwebtokens\&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-117%20passing-brightgreen)
 
-## Overview
+A full-stack Todo List application built with **React, Vite, Node.js, and Express**.
 
-TaskFlow lets a registered user create, edit, complete, and delete personal to-do items. Every task belongs to exactly one user — no one can see or modify another user's tasks. Tasks carry a priority (`low` / `medium` / `high`) that can be filtered and sorted client-side. The UI includes a light/dark theme toggle, a redesigned SaaS-style dashboard (gradient header, stat cards, skeleton loading, illustrated empty states), and inline client-side form validation.
+TaskFlow supports user authentication, personal task management, task priorities, dark mode, responsive UI, client-side validation, and automated testing.
 
-Data is stored **in memory** on the server (plain JS arrays) — there is no database. All users and tasks are lost when the server process restarts. This is a deliberate scope decision carried through every implemented story, not an oversight.
+The project was developed incrementally using a **story-driven development workflow with Squad Kit**, where each feature was planned, implemented, and tested as a separate story.
+
+> **Note:** Application data is currently stored in memory using JavaScript arrays. There is no database or persistent storage. All users and tasks are lost when the backend server restarts.
+
+---
+
+## Table of Contents
+
+* [Features](#features)
+* [Tech Stack](#tech-stack)
+* [Architecture](#architecture)
+* [Project Structure](#project-structure)
+* [Authentication](#authentication)
+* [Task Management](#task-management)
+* [Priority System](#priority-system)
+* [UI/UX](#uiux)
+* [Dark Mode](#dark-mode)
+* [Validation](#validation)
+* [API Reference](#api-reference)
+* [Getting Started](#getting-started)
+* [Testing](#testing)
+* [Environment Configuration](#environment-configuration)
+* [Development Workflow](#development-workflow)
+* [AI-Assisted Development](#ai-assisted-development)
+* [Project Status](#project-status)
+* [Security Considerations](#security-considerations)
+* [License](#license)
+
+---
 
 ## Features
 
-| Feature | Status |
-|---|---|
-| Todo CRUD (create, edit title, delete) | ✅ Implemented |
-| Mark task pending / completed | ✅ Implemented |
-| User registration / login / logout | ✅ Implemented |
-| JWT authentication (1-hour expiry) | ✅ Implemented |
-| Per-user task isolation | ✅ Implemented |
-| Task priorities (low / medium / high, default medium) | ✅ Implemented |
-| Priority filtering (client-side) | ✅ Implemented |
-| Priority sorting, high↔low (client-side) | ✅ Implemented |
-| Username / display name | ✅ Implemented |
-| UI/UX visual redesign (gradient header, icons, stat cards, skeleton loading) | ✅ Implemented |
-| Dark mode (toggle, persisted, system-preference aware) | ✅ Implemented |
-| Frontend form validation (email format, required fields, task title) | ✅ Implemented |
-| Password reset / email verification | ❌ Not implemented |
-| Persistent storage (database) | ❌ Not implemented |
-| Username uniqueness / editing | ❌ Not implemented |
+| Area            | Feature                              | Status            |
+| --------------- | ------------------------------------ | ----------------- |
+| Task Management | Create, edit, delete tasks           | ✅ Implemented     |
+| Task Management | Mark tasks pending/completed         | ✅ Implemented     |
+| Task Management | Task priorities: Low / Medium / High | ✅ Implemented     |
+| Task Management | Priority filtering                   | ✅ Implemented     |
+| Task Management | Priority sorting                     | ✅ Implemented     |
+| Authentication  | User registration                    | ✅ Implemented     |
+| Authentication  | User login/logout                    | ✅ Implemented     |
+| Authentication  | JWT authentication                   | ✅ Implemented     |
+| Authorization   | Per-user task isolation              | ✅ Implemented     |
+| User Profile    | Username/display name                | ✅ Implemented     |
+| UI/UX           | Responsive SaaS-style dashboard      | ✅ Implemented     |
+| UI/UX           | Light/Dark mode                      | ✅ Implemented     |
+| UI/UX           | Skeleton loading                     | ✅ Implemented     |
+| UI/UX           | Empty states                         | ✅ Implemented     |
+| Validation      | Frontend form validation             | ✅ Implemented     |
+| Testing         | Backend automated tests              | ✅ Implemented     |
+| Testing         | Frontend automated tests             | ✅ Implemented     |
+| Database        | Persistent storage                   | ❌ Not implemented |
+| Authentication  | Password reset                       | ❌ Not implemented |
+| Authentication  | Email verification                   | ❌ Not implemented |
+| Authentication  | OAuth / Social Login                 | ❌ Not implemented |
+
+---
 
 ## Tech Stack
 
 ### Frontend
-- **React** 18.3.1 (function components + hooks, no Redux/state library)
-- **Vite** 5.3.1 (dev server + build), with a dev proxy for `/api` → `http://localhost:4000`
-- Plain CSS (`index.css`, ~1,450 lines) using CSS custom properties — no Tailwind, no CSS-in-JS, no UI component library
-- Hand-rolled inline SVG icons (`components/icons.jsx`) — no icon library dependency
+
+* **React 18.3.1**
+* **Vite 5.3.1**
+* JavaScript / JSX
+* Plain CSS
+* CSS Custom Properties / Design Tokens
+* React Hooks
+* React Testing Library
+* Vitest
+
+No Tailwind CSS, Redux, or UI component library is used.
 
 ### Backend
-- **Node.js** + **Express** 4.19.2
-- **jsonwebtoken** 9.0.2 (JWT signing/verification)
-- **bcryptjs** 2.4.3 (password hashing)
-- **cors** 2.8.5
+
+* **Node.js**
+* **Express 4.19.2**
+* **jsonwebtoken 9.0.2**
+* **bcryptjs 2.4.3**
+* **cors 2.8.5**
 
 ### Testing
-- **Server:** Jest 29 + Supertest 7 (HTTP-level route tests against the exported Express `app`)
-- **Client:** Vitest 1.6.0 + React Testing Library 16 + jsdom
 
-### Build / Development Tools
-- Vite (client dev server & production build)
-- nodemon (backend auto-reload in development)
+* **Jest 29**
+* **Supertest 7**
+* **Vitest 1.6.0**
+* **React Testing Library 16**
+* **jsdom**
+
+### Development Tools
+
+* Vite
+* nodemon
+* Squad Kit
+
+---
 
 ## Architecture
 
-The client is a single-page React app served by Vite. In development, Vite proxies any `/api/*` request to the Express server on port 4000. The client never talks to a database directly — all state lives behind the Express API, which itself keeps everything in process memory (two plain arrays: one for users, one for tasks).
+TaskFlow uses a simple full-stack architecture:
 
 ```mermaid
 flowchart LR
-    subgraph Browser
-        UI["React SPA (Vite)"]
-    end
-    subgraph Server["Express Server (:4000)"]
-        MW["requireAuth middleware\n(JWT verification)"]
-        AuthR["/api/auth routes"]
-        TaskR["/api/tasks routes"]
-        US["userStore.js\n(in-memory array)"]
-        TS["taskStore.js\n(in-memory array)"]
+
+    Browser["React SPA"]
+
+    subgraph Frontend["Frontend"]
+        UI["React Components"]
+        API["API Layer"]
+        Auth["Auth Context"]
+        Theme["Theme Hook"]
     end
 
-    UI -- "fetch('/api/auth/...')" --> AuthR
-    UI -- "fetch('/api/tasks/...')\nAuthorization: Bearer <JWT>" --> MW
-    MW --> TaskR
-    AuthR --> US
-    TaskR --> TS
+    subgraph Backend["Express Backend :4000"]
+        AuthRoutes["/api/auth"]
+        Middleware["JWT Middleware"]
+        TaskRoutes["/api/tasks"]
+        Users["User Store\nIn-Memory"]
+        Tasks["Task Store\nIn-Memory"]
+    end
+
+    Browser --> UI
+    UI --> API
+    UI --> Auth
+    UI --> Theme
+
+    API --> AuthRoutes
+    API --> Middleware
+    Middleware --> TaskRoutes
+
+    AuthRoutes --> Users
+    TaskRoutes --> Tasks
 ```
+
+### Main Architectural Decisions
+
+#### JWT Authentication
+
+The backend issues JWT tokens after successful registration or login.
+
+Protected task requests must include:
+
+```text
+Authorization: Bearer <JWT>
+```
+
+The JWT is verified by authentication middleware before accessing task routes.
+
+#### Per-User Task Isolation
+
+Every task is associated with a user ID.
+
+Task queries are scoped using the authenticated user's ID, preventing one user from accessing another user's tasks.
+
+Requests for another user's task return `404` rather than `403` to avoid revealing whether the task exists.
+
+#### In-Memory Storage
+
+The application currently uses two in-memory JavaScript arrays:
+
+```text
+users[]
+tasks[]
+```
+
+This keeps the project simple and focused on application behavior.
+
+Data is lost whenever the backend process restarts.
+
+---
 
 ## Project Structure
 
-```
-.
-├── client/                        # React + Vite frontend
-│   ├── index.html                 # HTML entry; inline script sets data-theme before React mounts
-│   ├── vite.config.js             # Dev proxy (/api → :4000) + Vitest config
+```text
+TaskFlow/
+│
+├── client/
+│   ├── index.html
+│   ├── vite.config.js
+│   │
 │   └── src/
-│       ├── main.jsx                # React root, wraps <App/> in <AuthProvider>
-│       ├── App.jsx                 # Top-level screen switch + TaskDashboard
-│       ├── index.css               # Design-token system (light + dark)
+│       ├── main.jsx
+│       ├── App.jsx
+│       ├── index.css
+│       │
 │       ├── api/
-│       │   ├── authApi.js          # register()/login() fetch wrappers
-│       │   └── tasksApi.js         # Task CRUD fetch wrappers (attaches JWT)
+│       │   ├── authApi.js
+│       │   └── tasksApi.js
+│       │
 │       ├── auth/
-│       │   └── tokenStorage.js     # localStorage helpers for token + username
+│       │   └── tokenStorage.js
+│       │
 │       ├── context/
-│       │   └── AuthContext.jsx     # useAuth() — token/username state, login/register/logout
+│       │   └── AuthContext.jsx
+│       │
 │       ├── hooks/
-│       │   └── useTheme.js         # Theme state, persistence, system-preference detection
+│       │   └── useTheme.js
+│       │
 │       ├── utils/
-│       │   └── validation.js       # isValidEmail()
+│       │   └── validation.js
+│       │
 │       └── components/
-│           ├── TaskForm.jsx        # Add-task form (title + priority)
-│           ├── TaskItem.jsx        # Single task row (status, priority, inline edit)
-│           ├── TaskList.jsx        # List / empty states
-│           ├── LoginPage.jsx / RegisterPage.jsx
-│           ├── ThemeToggle.jsx     # Light/dark switch (role="switch")
-│           └── icons.jsx           # Inline SVG icon set
-├── server/                        # Express backend
+│           ├── TaskForm.jsx
+│           ├── TaskItem.jsx
+│           ├── TaskList.jsx
+│           ├── LoginPage.jsx
+│           ├── RegisterPage.jsx
+│           ├── ThemeToggle.jsx
+│           └── icons.jsx
+│
+├── server/
 │   └── src/
-│       ├── index.js                # Server entry (listens on PORT || 4000)
-│       ├── app.js                  # Express app: cors, json body, route mounting
-│       ├── authMiddleware.js       # signToken(), requireAuth() (JWT verification)
-│       ├── userStore.js            # In-memory user store
-│       ├── taskStore.js            # In-memory task store (per-user scoped)
+│       ├── index.js
+│       ├── app.js
+│       ├── authMiddleware.js
+│       ├── userStore.js
+│       ├── taskStore.js
+│       │
 │       └── routes/
-│           ├── auth.js             # POST /register, POST /login
-│           └── tasks.js            # Task CRUD + status/priority routes
-└── .squad/                        # squad-kit planning artifacts (plans, stories, config)
+│           ├── auth.js
+│           └── tasks.js
+│
+└── .squad/
+    ├── stories/
+    ├── plans/
+    └── README.md
 ```
 
-## Frontend
-
-- **`App.jsx`** exports a top-level `App` component that reads `useAuth().isAuthenticated`. When unauthenticated it toggles between `LoginPage` and `RegisterPage`; when authenticated it renders `TaskDashboard`, which owns all task state (`tasks`, `loading`, `error`, `sortOrder`, `filterPriority`) and derives the visible, sorted/filtered task list on every render.
-- **Components** are plain, prop-driven function components: `TaskForm` (title + priority input), `TaskItem` (view/edit modes, status checkbox, priority `<select>`), `TaskList` (renders `TaskItem`s or an empty state), `LoginPage`/`RegisterPage` (controlled forms with inline validation), and `ThemeToggle` (an accessible switch button).
-- **API layer** (`api/authApi.js`, `api/tasksApi.js`) wraps `fetch` against `/api/...`. `tasksApi.js` attaches an `Authorization: Bearer <token>` header (via `auth/tokenStorage.js`) to every request and tags thrown errors with `error.status` so callers can special-case a `401` (expired/invalid token → automatic logout).
-- **Authentication/token handling**: `context/AuthContext.jsx` exposes a `useAuth()` hook (`isAuthenticated`, `username`, `login`, `register`, `logout`). The JWT and the display username are persisted to `localStorage` (`todo_auth_token`, `todo_auth_username`) by `auth/tokenStorage.js`, so a page refresh keeps the user logged in.
-- **Theme handling**: `hooks/useTheme.js` is a plain hook (no React Context) that reads/writes `localStorage['todo_theme_preference']`, falls back to `window.matchMedia('(prefers-color-scheme: dark)')` when nothing is stored, and sets `data-theme` on `<html>`. A small blocking `<script>` in `client/index.html` sets `data-theme` before any React code runs, preventing a flash of the wrong theme.
-- **Validation utilities**: `utils/validation.js` exports `isValidEmail()`, a regex-based email format check (`/^[^\s@]+@[^\s@]+\.[^\s@]+$/`) used by both `LoginPage` and `RegisterPage`.
-- **Styling/design tokens**: `index.css` defines a single `:root` block of CSS custom properties (colors, gradients, spacing, radii, shadows, font sizes, transitions) plus a `:root[data-theme="dark"]` block that redefines the same token names with an independently designed dark palette (not an inverted copy). Every component's CSS reads these tokens, so the same class rules render correctly in both themes.
-
-## Backend
-
-- **`app.js`** builds the Express app: `cors()` (open, no origin restriction), `express.json()`, mounts `authRouter` at `/api/auth` (public) and `tasksRouter` at `/api/tasks` behind `requireAuth` (protected).
-- **Routes**
-  - `routes/auth.js` — `POST /register`, `POST /login`. Both hash/verify passwords with `bcryptjs` and return `{ token, user }` on success.
-  - `routes/tasks.js` — `GET /`, `POST /`, `PUT /:id`, `DELETE /:id`, `PATCH /:id/status`, `PATCH /:id/priority`, all scoped to `req.userId` set by the auth middleware.
-- **Authentication middleware** (`authMiddleware.js`): `signToken(user)` signs a JWT (`{ sub, email }` payload, 1-hour expiry) with `process.env.JWT_SECRET` (or a hardcoded dev fallback). `requireAuth` parses the `Authorization: Bearer <token>` header, verifies the JWT, and attaches `req.userId`; it returns `401` for a missing/malformed header or an invalid/expired token.
-- **User/task storage**: `userStore.js` and `taskStore.js` each hold a module-level array and an incrementing id counter — no persistence layer. Both expose a `reset()` used only by the test suites. Typed errors (`ValidationError`, `ConflictError`, `NotFoundError`) are thrown by the stores and mapped to HTTP status codes by each router's `handleStoreError` helper.
-- **API behavior**: task lookups are always scoped by `userId` (`tasks.find(t => t.id === id && t.userId === userId)`); a task id that exists but belongs to another user is treated identically to a non-existent id and returns `404`, never `403` — this deliberately avoids confirming a task id exists to a non-owner.
+---
 
 ## Authentication
 
-1. **Registration** — `POST /api/auth/register` with `{ email, username, password }`. The server rejects a password under 6 characters, an empty email, or an empty/whitespace username with `400`, and a duplicate email with `409` (usernames are **not** required to be unique — two users can share one). On success it hashes the password with bcrypt (10 salt rounds) and returns `{ token, user: { id, email, username } }`.
-2. **Login** — `POST /api/auth/login` with `{ email, password }`. Returns the same `{ token, user }` shape on success, or a generic `401 "Invalid email or password"` for either an unknown email or a wrong password (so the client cannot distinguish the two cases).
-3. **JWT** — signed with `jsonwebtoken`, payload `{ sub: userId, email }`, 1-hour (`1h`) expiry, secret from `process.env.JWT_SECRET` (falls back to a hardcoded development secret when unset).
-4. **Token storage** — the client stores the JWT and the display username in `localStorage` (`todo_auth_token`, `todo_auth_username`), so a page refresh preserves the session.
-5. **Authenticated requests** — every `/api/tasks*` call attaches `Authorization: Bearer <token>`. A `401` response (missing/invalid/expired token) causes the client to clear stored credentials and return to the login screen.
-6. **User-specific tasks** — `requireAuth` resolves `req.userId` from the verified token; every task store function filters/looks up by that id, so users only ever see and mutate their own tasks.
+### Registration
 
-## Todo / Task Management
+Users register using:
 
-- **Create** — `TaskForm` submits a trimmed, required title plus a priority (defaults to `medium` in the form); the server independently re-validates and rejects an empty/whitespace-only title with `400`.
-- **Read** — `GET /api/tasks` returns only the authenticated user's tasks.
-- **Update title** — inline edit mode in `TaskItem`, saved via `PUT /api/tasks/:id`.
-- **Delete** — `DELETE /api/tasks/:id`.
-- **Toggle status** — a checkbox on each task calls `PATCH /api/tasks/:id/status` with `{ status: 'pending' | 'completed' }`.
-- **Change priority** — a per-task `<select>` calls `PATCH /api/tasks/:id/priority` with `{ priority: 'low' | 'medium' | 'high' }`, independent of title/status edits.
+```http
+POST /api/auth/register
+```
+
+Request:
+
+```json
+{
+  "email": "user@example.com",
+  "username": "John",
+  "password": "password123"
+}
+```
+
+The server:
+
+* Validates the input.
+* Requires a password of at least 6 characters.
+* Requires a non-empty username.
+* Prevents duplicate email addresses.
+* Hashes passwords using bcrypt.
+* Returns a JWT after successful registration.
+
+### Login
+
+```http
+POST /api/auth/login
+```
+
+Request:
+
+```json
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+```
+
+Successful authentication returns:
+
+```json
+{
+  "token": "<JWT>",
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "username": "John"
+  }
+}
+```
+
+Invalid credentials return a generic `401` response.
+
+### JWT
+
+JWTs:
+
+* Expire after **1 hour**.
+* Contain the authenticated user's ID and email.
+* Are verified on every protected task request.
+* Are signed using `JWT_SECRET`.
+
+### Client Session
+
+The client stores the JWT and username in `localStorage`.
+
+The user remains authenticated after refreshing the page until the token expires or the user logs out.
+
+---
+
+## Task Management
+
+### Create
+
+Users can create tasks with:
+
+* Title
+* Priority
+
+The title is required and cannot contain only whitespace.
+
+### Read
+
+Users can view all of their own tasks.
+
+```http
+GET /api/tasks
+```
+
+### Update
+
+Task titles can be edited inline.
+
+```http
+PUT /api/tasks/:id
+```
+
+### Delete
+
+```http
+DELETE /api/tasks/:id
+```
+
+### Status
+
+Tasks can be switched between:
+
+```text
+pending
+completed
+```
+
+Endpoint:
+
+```http
+PATCH /api/tasks/:id/status
+```
+
+### Priority
+
+Tasks support three priority levels:
+
+```text
+low
+medium
+high
+```
+
+Priority can be changed independently:
+
+```http
+PATCH /api/tasks/:id/priority
+```
+
+---
 
 ## Priority System
 
-- Every task has a priority of `low`, `medium`, or `high`; **`medium`** is the default when a client creates a task without specifying one.
-- Priority can be changed at any time via a dedicated control, independent of the title or completion status.
-- **Filtering**: a "Filter by priority" dropdown (`all` / `low` / `medium` / `high`) narrows the visible list; filtering is done entirely client-side over the already-fetched task list.
-- **Sorting**: a "Sort by priority" dropdown offers `None`, `High to Low`, and `Low to High`; also purely client-side (`PRIORITY_RANK` comparator in `App.jsx`), with no server-side sort parameter.
-- Each priority is shown as a labeled badge (text + icon + color), so it is distinguishable by more than color alone.
+Every task has one of three priorities:
 
-## Username
+| Priority | Description      |
+| -------- | ---------------- |
+| Low      | Low importance   |
+| Medium   | Default priority |
+| High     | High importance  |
 
-- Collected as a required field during registration (rejects empty/whitespace with `400`); intentionally **not** unique — two accounts may share a username.
-- Login remains email + password only; there is no "log in with username" path.
-- The username is returned in the register/login response and persisted client-side (`localStorage`), then displayed on the dashboard header as "Logged in as `<username>`" next to an avatar showing the username's first initial, falling back to "you" if no username is available.
+### Filtering
+
+The dashboard supports:
+
+```text
+All
+Low
+Medium
+High
+```
+
+Filtering is performed client-side.
+
+### Sorting
+
+Tasks can be sorted:
+
+```text
+None
+High → Low
+Low → High
+```
+
+Sorting is also performed client-side.
+
+Priority is represented using both text and visual indicators, so the meaning is not dependent on color alone.
+
+---
 
 ## UI/UX
 
-The dashboard, login, and register screens share one visual system built on the CSS token layer described below:
+TaskFlow includes a redesigned SaaS-style interface.
 
-- A gradient (indigo → violet) header/brand panel and primary buttons, used selectively rather than on every surface.
-- A stats strip on the dashboard (Total / Pending / Completed), computed client-side from the already-fetched task list — not a separate API call.
-- A hand-rolled inline SVG icon set (`components/icons.jsx`) for priorities, status, and actions — every icon is `aria-hidden`/`focusable="false"` so it never changes an element's accessible name.
-- Elevated task cards with soft shadows, hover motion, and a priority-accent treatment.
-- A skeleton-loader loading state (shimmering placeholder cards) instead of a spinner.
-- An illustrated empty state (inline SVG) with two distinct messages: "No tasks yet…" vs. "No tasks match the selected priority filter."
-- Split-panel Login/Register pages: a decorative gradient brand panel beside the form on wide viewports, collapsing to a single centered card on narrow ones.
-- Responsive layout from roughly 360px up through 1440px+, with no new npm dependency added for any of this.
+### Dashboard
+
+The dashboard includes:
+
+* Gradient header
+* Task statistics
+* Total tasks
+* Pending tasks
+* Completed tasks
+* Task cards
+* Priority badges
+* Responsive layout
+* Skeleton loading
+* Illustrated empty states
+* Inline task editing
+
+### Authentication Screens
+
+Login and registration pages use a split-panel layout on larger screens and a centered card layout on smaller screens.
+
+### Responsive Design
+
+The interface is designed to work across:
+
+* Desktop
+* Laptop
+* Tablet
+* Mobile
+
+No additional UI framework is required.
+
+---
 
 ## Dark Mode
 
-- **Toggle**: an accessible `ThemeToggle` button (`role="switch"`, `aria-checked`, `aria-label="Switch to light/dark mode"`) appears on the Login screen, Register screen, and the Task Dashboard header.
-- **System preference**: on first visit with no stored choice, the app renders using `window.matchMedia('(prefers-color-scheme: dark)')`.
-- **Persistence**: once a user explicitly toggles the theme, that choice is written to `localStorage['todo_theme_preference']` and takes precedence over the system preference on every subsequent load, including after a refresh.
-- **No flash of unstyled/wrong theme**: a small blocking `<script>` in `client/index.html` reads the stored preference (or system preference) and sets `data-theme` on `<html>` before the React bundle loads.
-- **CSS token system**: `index.css` defines all colors as CSS custom properties inside `:root`, then a separate `:root[data-theme="dark"]` block redefines the same variable names with an independently designed dark palette (four layered surface steps, its own accent hues, and dark-tuned shadows) rather than a simple lightness inversion. Every component consumes the variables, so no per-component dark-mode styling is needed. Theme changes animate via the existing `--transition-base`/`--transition-fast` tokens and respect `prefers-reduced-motion`.
+TaskFlow supports both light and dark themes.
+
+### Features
+
+* Manual theme toggle
+* System preference detection
+* Persistent theme selection
+* No flash of incorrect theme during page load
+* Accessible theme switch
+* Dedicated dark color palette
+
+The selected theme is stored in:
+
+```text
+localStorage['todo_theme_preference']
+```
+
+If the user has not selected a preference, the application uses:
+
+```text
+prefers-color-scheme
+```
+
+---
 
 ## Validation
 
-Frontend validation is implemented and runs independently of (in addition to) server-side checks:
+Validation exists on both the frontend and backend.
 
-- **Login form** (`LoginPage.jsx`): email is required and must match an email-shaped pattern (`utils/validation.js`'s `isValidEmail`); password is required. Errors appear after a field is blurred ("touched") or after a failed submit attempt, with `aria-invalid`/`aria-describedby` wired to a visible `role="alert"` message.
-- **Register form** (`RegisterPage.jsx`): the same email/password rules, plus a required, non-empty username field.
-- **Task form / inline task edit** (`TaskForm.jsx`, `TaskItem.jsx`): the task title must be non-empty after trimming; an inline error is shown on blur or failed submit, and the parent `onAdd`/`onEdit` callback is never invoked while the field is invalid.
-- All forms set `noValidate` on the `<form>` element, replacing native browser validation UI with this custom JavaScript validation.
+### Login
+
+* Email is required.
+* Email format is validated.
+* Password is required.
+
+### Registration
+
+* Email is required.
+* Email format is validated.
+* Username is required.
+* Password is required.
+
+### Tasks
+
+Task titles:
+
+* Must be provided.
+* Cannot be empty.
+* Cannot contain only whitespace.
+
+Frontend validation provides immediate feedback while the backend independently validates incoming requests.
+
+---
 
 ## API Reference
 
-All `/api/tasks*` routes require a valid `Authorization: Bearer <token>` header; `/api/auth/*` routes are public.
+### Authentication
 
-| Method | Route | Auth | Purpose | Key request fields | Response behavior |
-|---|---|---|---|---|---|
-| POST | `/api/auth/register` | No | Create a new account | `email`, `username`, `password` (≥ 6 chars) | `201` + `{ token, user: { id, email, username } }`; `400` on short password, invalid email, or empty username; `409` on duplicate email |
-| POST | `/api/auth/login` | No | Authenticate and receive a JWT | `email`, `password` | `200` + `{ token, user }`; `401` (generic message) on unknown email or wrong password |
-| GET | `/api/tasks` | Yes | List the authenticated user's tasks | — | `200` + array of tasks (never includes other users' tasks) |
-| POST | `/api/tasks` | Yes | Create a task | `title` (required), `priority` (optional, defaults `medium`) | `201` + created task; `400` on empty title or invalid priority |
-| PUT | `/api/tasks/:id` | Yes | Update a task's title | `title` (required) | `200` + updated task; `400` on empty title; `404` if not found or not owned |
-| DELETE | `/api/tasks/:id` | Yes | Delete a task | — | `204` no body; `404` if not found or not owned |
-| PATCH | `/api/tasks/:id/status` | Yes | Toggle pending/completed | `status`: `'pending'` \| `'completed'` | `200` + updated task; `400` on invalid status; `404` if not found or not owned |
-| PATCH | `/api/tasks/:id/priority` | Yes | Change priority | `priority`: `'low'` \| `'medium'` \| `'high'` | `200` + updated task; `400` on invalid priority; `404` if not found or not owned |
+| Method | Endpoint             | Auth | Description           |
+| ------ | -------------------- | ---- | --------------------- |
+| POST   | `/api/auth/register` | No   | Register a new user   |
+| POST   | `/api/auth/login`    | No   | Login and receive JWT |
 
-## Running the Project
+### Tasks
 
-Requires Node.js and npm. The client and server are independent npm packages (`client/package.json`, `server/package.json`) with no root-level package manifest.
+All task endpoints require:
 
-**1. Install dependencies**
-
-```bash
-cd server && npm install
-cd ../client && npm install
+```http
+Authorization: Bearer <JWT>
 ```
 
-**2. Start the backend** (listens on `http://localhost:4000` by default)
+| Method | Endpoint                  | Description              |
+| ------ | ------------------------- | ------------------------ |
+| GET    | `/api/tasks`              | Get current user's tasks |
+| POST   | `/api/tasks`              | Create a task            |
+| PUT    | `/api/tasks/:id`          | Update task title        |
+| DELETE | `/api/tasks/:id`          | Delete a task            |
+| PATCH  | `/api/tasks/:id/status`   | Update task status       |
+| PATCH  | `/api/tasks/:id/priority` | Update task priority     |
+
+### Example: Create Task
+
+```http
+POST /api/tasks
+Authorization: Bearer <JWT>
+Content-Type: application/json
+```
+
+```json
+{
+  "title": "Complete project documentation",
+  "priority": "high"
+}
+```
+
+Response:
+
+```json
+{
+  "id": 1,
+  "userId": 1,
+  "title": "Complete project documentation",
+  "status": "pending",
+  "priority": "high"
+}
+```
+
+---
+
+## Getting Started
+
+### Requirements
+
+Make sure you have:
+
+* Node.js
+* npm
+* Git
+
+### 1. Clone the repository
+
+```bash
+git clone <repository-url>
+cd TaskFlow
+```
+
+### 2. Install backend dependencies
 
 ```bash
 cd server
-npm run dev     # nodemon, auto-restarts on change
-# or
-npm start       # node src/index.js
+npm install
 ```
 
-**3. Start the frontend** (Vite dev server, proxies `/api` to `http://localhost:4000`)
+### 3. Install frontend dependencies
+
+```bash
+cd ../client
+npm install
+```
+
+### 4. Start the backend
+
+Open a terminal:
+
+```bash
+cd server
+npm run dev
+```
+
+The backend runs by default on:
+
+```text
+http://localhost:4000
+```
+
+Or use:
+
+```bash
+npm start
+```
+
+### 5. Start the frontend
+
+Open another terminal:
 
 ```bash
 cd client
 npm run dev
 ```
 
-**4. Run tests**
+Vite will start the frontend development server and proxy `/api` requests to the backend.
 
-```bash
-cd server && npm test    # Jest + Supertest
-cd client && npm test    # vitest run
-```
-
-**5. Build the frontend for production**
+### 6. Build for production
 
 ```bash
 cd client
-npm run build            # outputs client/dist
+npm run build
 ```
+
+The production build is generated in:
+
+```text
+client/dist
+```
+
+---
 
 ## Testing
 
-| Suite | Framework | File | Approx. test count |
-|---|---|---|---|
-| Server | Jest + Supertest | `server/src/taskStore.test.js` | 16 |
-| Server | Jest + Supertest | `server/src/userStore.test.js` | 6 |
-| Server | Jest + Supertest | `server/src/routes/auth.test.js` | 8 |
-| Server | Jest + Supertest | `server/src/routes/tasks.test.js` | 22 |
-| Client | Vitest + RTL | `client/src/App.test.jsx` | 12 |
-| Client | Vitest + RTL | `client/src/api/authApi.test.js` | 5 |
-| Client | Vitest + RTL | `client/src/components/LoginPage.test.jsx` | 9 |
-| Client | Vitest + RTL | `client/src/components/RegisterPage.test.jsx` | 10 |
-| Client | Vitest + RTL | `client/src/components/TaskForm.test.jsx` | 7 |
-| Client | Vitest + RTL | `client/src/components/TaskItem.test.jsx` | 10 |
-| Client | Vitest + RTL | `client/src/components/TaskList.test.jsx` | 3 |
-| Client | Vitest + RTL | `client/src/components/ThemeToggle.test.jsx` | 3 |
-| Client | Vitest + RTL | `client/src/hooks/useTheme.test.js` | 6 |
+The project contains automated tests for both backend and frontend functionality.
 
-Coverage includes: task CRUD and validation (including cross-user access returning `404`), user registration/login validation and error responses, JWT-gated route access, priority defaulting/validation/filter/sort, username propagation, and theme persistence/system-preference/toggle behavior. Run a suite with `npm test` from the corresponding `server/` or `client/` directory.
+### Backend
+
+```bash
+cd server
+npm test
+```
+
+**4 test files — 52 tests passing**
+
+### Frontend
+
+```bash
+cd client
+npm test
+```
+
+**9 test files — 65 tests passing**
+
+### Total
+
+**117 automated tests passing**
+
+The test suites cover:
+
+* Task CRUD
+* Task validation
+* Task status changes
+* Task priorities
+* Priority filtering
+* Priority sorting
+* Cross-user task access
+* User registration
+* User login
+* Authentication errors
+* JWT-protected routes
+* Username handling
+* Frontend validation
+* Theme switching
+* Theme persistence
+* System theme preference
+* UI behavior
+
+The frontend production build also completes successfully.
+
+---
 
 ## Environment Configuration
 
-| Variable | Where used | Default | Purpose |
-|---|---|---|---|
-| `PORT` | `server/src/index.js` | `4000` | Port the Express server listens on |
-| `JWT_SECRET` | `server/src/authMiddleware.js` | `'dev-secret-do-not-use-in-production'` | Secret used to sign/verify JWTs |
+The backend supports the following environment variables:
 
-There is no `.env` loading mechanism in this repository (no `dotenv` dependency) — set these as real process environment variables if you need non-default values. The client has no environment variables; its dev-server API target (`http://localhost:4000`) is hardcoded in `client/vite.config.js`.
+| Variable     | Default              | Description                         |
+| ------------ | -------------------- | ----------------------------------- |
+| `PORT`       | `4000`               | Express server port                 |
+| `JWT_SECRET` | Development fallback | Secret used to sign and verify JWTs |
+
+Example:
+
+```bash
+PORT=4000
+JWT_SECRET=your-secure-secret
+```
+
+There is currently no `.env` loader such as `dotenv`.
+
+For production, environment variables should be configured by the hosting environment.
+
+---
 
 ## Development Workflow
 
-This repository was built story-by-story using the [squad-kit](.squad/README.md) planning workflow:
+TaskFlow was developed using **Squad Kit**, following a story-driven development workflow.
 
-- `.squad/stories/` holds one `intake.md` per feature — the raw requirements fed to the planner.
-- `.squad/plans/` holds the generated implementation plans, one numbered story file per feature, tracked centrally in `.squad/plans/00-index.md` (a global sequence number, `NN`, is assigned per story across all features).
-- Each story file documents its goal, the exact files to change, edge cases, a test plan, and done criteria, which is how the "Implemented Stories" and "Current Status" sections below were verified against the actual code.
+Each feature was treated as an independent development story.
 
-## Implemented Stories
+### Workflow
 
-| NN | Feature folder | Story | Status |
-|---|---|---|---|
-| 01 | `add-todo-task` | Todo Tasks — base CRUD, status toggle | ✅ Implemented |
-| 02 | `add-user-authentication` | User Login and Registration — JWT auth, per-user tasks | ✅ Implemented |
-| 03 | `add-task-priorities` | Task Priorities — priority field, filter, sort | ✅ Implemented |
-| 04 | `add-username` | Username Display Name — collected at registration, shown on dashboard | ✅ Implemented |
-| 05 | `improve-todo-ui` | Improve Todo UI/UX — first restyle pass (token layer, buttons, cards) | ✅ Implemented, later superseded visually |
-| 06 | `improve-todo-ui` | Visual Redesign (SaaS-grade) — supersedes Story 05's visual output (gradients, icon system, skeleton loading, split-panel auth) | ✅ Implemented |
-| 07 | `dark-mode` | Add Dark Mode — theme toggle, persistence, from-scratch dark palette | ✅ Implemented |
-| — | `frontend-validation` | Add Frontend Form Validation | ✅ Implemented in code (`utils/validation.js`, inline validation in `LoginPage`, `RegisterPage`, `TaskForm`, `TaskItem`), but `.squad/plans/frontend-validation/00-overview.md` was never filled in with a numbered story file, so this feature has no assigned `NN` in the plan index |
+```text
+Intake
+  ↓
+Plan
+  ↓
+Implement
+  ↓
+Test
+  ↓
+Verify
+```
 
-## Current Status
+### Implemented Stories
 
-**Implemented and verified in the current codebase:** full task CRUD with status toggling, JWT-based registration/login/logout with per-user task isolation, task priorities with client-side filter and sort, a non-unique username shown on the dashboard, a full visual redesign (gradient header, stat cards, icon system, skeleton loading, illustrated empty states, split-panel auth), a persisted light/dark theme with system-preference detection, and frontend form validation on both auth forms and the task title.
+| #   | Feature             | Description                                 | Status |
+| --- | ------------------- | ------------------------------------------- | ------ |
+| 01  | Todo Tasks          | Base CRUD and status toggling               | ✅      |
+| 02  | User Authentication | Registration, login, JWT, per-user tasks    | ✅      |
+| 03  | Task Priorities     | Priority field, filtering and sorting       | ✅      |
+| 04  | Username            | Registration username and dashboard display | ✅      |
+| 05  | Improve Todo UI/UX  | Initial design-token restyle                | ✅      |
+| 06  | Visual Redesign     | SaaS-style UI, icons, skeleton loading      | ✅      |
+| 07  | Dark Mode           | Theme toggle and persistence                | ✅      |
+| —   | Frontend Validation | Auth and task form validation               | ✅      |
 
-**Not implemented:** any persistent storage (all data is in-memory and resets on every server restart), password reset/forgot-password, OAuth/social login, email verification, username uniqueness or editing, roles/permissions, live cross-tab theme sync, and live OS-theme-change syncing after initial load.
+The planning artifacts are stored under:
+
+```text
+.squad/
+```
+
+---
+
+## AI-Assisted Development
+
+AI tools were used as part of the project's development workflow.
+
+### Planning
+
+Squad Kit was used to transform feature requirements into implementation plans.
+
+Plans define:
+
+* Feature goals
+* Files to modify
+* Implementation steps
+* Edge cases
+* Testing requirements
+* Completion criteria
+
+### Implementation
+
+Features were implemented story-by-story rather than as one large development task.
+
+### Testing
+
+Automated tests were added alongside feature implementation to verify new functionality and protect existing behavior.
+
+### Documentation
+
+The README documents the actual project architecture, implementation, testing, and current limitations.
+
+AI assistance was used as a development tool, while the final implementation and repository state remain the source of truth.
+
+---
+
+## Project Status
+
+### Implemented
+
+* Full Todo CRUD
+* Task status management
+* Task priorities
+* Priority filtering
+* Priority sorting
+* User registration
+* User login/logout
+* JWT authentication
+* Per-user task isolation
+* Username display
+* Responsive UI
+* SaaS-style visual redesign
+* Dark mode
+* System theme detection
+* Client-side validation
+* Backend validation
+* Automated frontend tests
+* Automated backend tests
+
+### Current Limitations
+
+The following are intentionally not implemented:
+
+* Database persistence
+* Password reset
+* Email verification
+* OAuth / social login
+* Username editing
+* Username uniqueness
+* Rate limiting
+* Refresh tokens
+* CI/CD pipeline
+* Production deployment configuration
+
+---
 
 ## Future Improvements
 
-The following are reasonable next steps, **not implemented today**:
+Potential future enhancements include:
 
-- Replace in-memory arrays with a real database (e.g. PostgreSQL/SQLite) so data survives a restart.
-- Password reset / forgot-password flow and email verification.
-- Route-based navigation (e.g. `react-router`) instead of local `view` state switching.
-- Server-side pagination, search, and due dates/categories for tasks.
-- Rate limiting and refresh tokens for the auth endpoints.
-- A CI pipeline running both test suites on every push.
+### Database
 
-## Security Notes
+Replace the in-memory stores with a persistent database such as:
 
-- Passwords are hashed with `bcryptjs` (10 salt rounds) before storage — plaintext passwords are never persisted.
-- `JWT_SECRET` falls back to a hardcoded development value (`server/src/authMiddleware.js`) when the environment variable is unset — **this fallback must never be relied on outside local development.**
-- All data (`users`, `tasks`) lives in process memory only: it is lost on restart, cannot be shared across multiple server instances, and has no backup/durability guarantee.
-- CORS is enabled with no restrictions (`cors()` with default options) — acceptable for local development, but should be locked down to specific origins before any public deployment.
-- The login endpoint returns a deliberately generic `401` message for both "unknown email" and "wrong password" to avoid confirming which emails are registered; the registration endpoint's `409 "email already registered"` response does, by contrast, reveal whether an email is taken.
-- There is no rate limiting or brute-force protection on `/api/auth/login` or `/api/auth/register`.
-- Cross-user task access (a valid token attempting to read/modify another user's task id) is mapped to `404`, not `403`, so it does not confirm whether the requested task id exists at all.
+* PostgreSQL
+* SQLite
+
+### Authentication
+
+Add:
+
+* Password reset
+* Email verification
+* Refresh tokens
+* OAuth / social login
+* Rate limiting
+
+### Task Management
+
+Add:
+
+* Search
+* Categories
+* Due dates
+* Server-side filtering
+* Server-side pagination
+
+### Infrastructure
+
+Add:
+
+* CI/CD
+* Production deployment
+* Environment-based configuration
+* Database migrations
+* Monitoring and logging
+
+---
+
+## Security Considerations
+
+This project is intended as a development exercise and is **not production-ready**.
+
+### Password Security
+
+Passwords are hashed using:
+
+```text
+bcryptjs
+```
+
+with 10 salt rounds.
+
+Plaintext passwords are never stored.
+
+### JWT Secret
+
+A development fallback secret exists when `JWT_SECRET` is not configured.
+
+**A production deployment must always provide a strong `JWT_SECRET`.**
+
+### CORS
+
+CORS is currently configured without an origin restriction:
+
+```javascript
+cors()
+```
+
+For production, allowed origins should be explicitly restricted.
+
+### Authentication Rate Limiting
+
+There is currently no rate limiting or brute-force protection on authentication endpoints.
+
+### In-Memory Storage
+
+All users and tasks are stored in process memory.
+
+This means:
+
+* Data disappears after server restart.
+* Data cannot be shared between multiple server instances.
+* There is no database backup.
+* There is no durability guarantee.
+
+---
 
 ## License
 
-No license file is present in this repository.
+No license has been specified for this project.
