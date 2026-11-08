@@ -1,8 +1,20 @@
+const { getDb } = require('./db');
+
 class ValidationError extends Error {}
 class ConflictError extends Error {}
 
-let users = [];
-let nextId = 1;
+function toUser(row) {
+  if (!row) {
+    return undefined;
+  }
+  return {
+    id: row.id,
+    email: row.email,
+    username: row.username,
+    passwordHash: row.password_hash,
+    createdAt: row.created_at,
+  };
+}
 
 function normalizeEmail(email) {
   const trimmed = typeof email === 'string' ? email.trim().toLowerCase() : '';
@@ -14,11 +26,11 @@ function normalizeEmail(email) {
 
 function findByEmail(email) {
   const normalized = normalizeEmail(email);
-  return users.find((user) => user.email === normalized);
+  return toUser(getDb().prepare('SELECT * FROM users WHERE email = ?').get(normalized));
 }
 
 function findById(id) {
-  return users.find((user) => user.id === id);
+  return toUser(getDb().prepare('SELECT * FROM users WHERE id = ?').get(id));
 }
 
 function normalizeUsername(username) {
@@ -35,14 +47,16 @@ function register(email, passwordHash, username) {
   if (findByEmail(normalizedEmail)) {
     throw new ConflictError(`email ${normalizedEmail} is already registered`);
   }
-  const user = { id: nextId++, email: normalizedEmail, passwordHash, username: normalizedUsername };
-  users.push(user);
-  return user;
+  const { lastInsertRowid } = getDb()
+    .prepare('INSERT INTO users (email, username, password_hash) VALUES (?, ?, ?)')
+    .run(normalizedEmail, normalizedUsername, passwordHash);
+  return findById(Number(lastInsertRowid));
 }
 
+// Test helper: empties the table (tasks cascade) and restarts ids at 1.
 function reset() {
-  users = [];
-  nextId = 1;
+  const db = getDb();
+  db.exec("DELETE FROM users; DELETE FROM sqlite_sequence WHERE name IN ('users', 'tasks');");
 }
 
 module.exports = {

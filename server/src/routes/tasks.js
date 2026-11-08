@@ -1,5 +1,6 @@
 const express = require('express');
 const taskStore = require('../taskStore');
+const { schemas, validate } = require('../validation');
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ router.get('/', (req, res) => {
   res.status(200).json(taskStore.getAll(req.userId));
 });
 
-router.post('/', (req, res) => {
+router.post('/', validate({ body: schemas.createTask }), (req, res) => {
   try {
     const task = taskStore.create(req.body?.title, req.userId, req.body?.priority);
     res.status(201).json(task);
@@ -28,36 +29,36 @@ router.post('/', (req, res) => {
   }
 });
 
-router.put('/:id', (req, res) => {
+router.put('/:id', validate({ params: schemas.idParams, body: schemas.updateTask }), (req, res) => {
   try {
-    const task = taskStore.update(Number(req.params.id), req.body?.title, req.userId);
+    const task = taskStore.update(req.params.id, req.body?.title, req.userId);
     res.status(200).json(task);
   } catch (err) {
     if (!handleStoreError(err, res)) throw err;
   }
 });
 
-router.delete('/:id', (req, res) => {
+router.delete('/:id', validate({ params: schemas.idParams }), (req, res) => {
   try {
-    taskStore.remove(Number(req.params.id), req.userId);
+    taskStore.remove(req.params.id, req.userId);
     res.status(204).end();
   } catch (err) {
     if (!handleStoreError(err, res)) throw err;
   }
 });
 
-router.patch('/:id/status', (req, res) => {
+router.patch('/:id/status', validate({ params: schemas.idParams, body: schemas.taskStatus }), (req, res) => {
   try {
-    const task = taskStore.setStatus(Number(req.params.id), req.body?.status, req.userId);
+    const task = taskStore.setStatus(req.params.id, req.body?.status, req.userId);
     res.status(200).json(task);
   } catch (err) {
     if (!handleStoreError(err, res)) throw err;
   }
 });
 
-router.patch('/:id/priority', (req, res) => {
+router.patch('/:id/priority', validate({ params: schemas.idParams, body: schemas.taskPriority }), (req, res) => {
   try {
-    const task = taskStore.setPriority(Number(req.params.id), req.body?.priority, req.userId);
+    const task = taskStore.setPriority(req.params.id, req.body?.priority, req.userId);
     res.status(200).json(task);
   } catch (err) {
     if (!handleStoreError(err, res)) throw err;

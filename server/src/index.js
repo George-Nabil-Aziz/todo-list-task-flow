@@ -1,7 +1,13 @@
-const app = require('./app');
+let app;
+let config;
+try {
+  ({ config } = require('./config'));
+  app = require('./app');
+} catch (err) {
+  console.error(`Failed to start todo-server: ${err.message}`);
+  process.exit(1);
+}
 
-const PORT = process.env.PORT || 4000;
-
-app.listen(PORT, () => {
-  console.log(`todo-server listening on port ${PORT}`);
+app.listen(config.port, () => {
+  console.log(`todo-server listening on port ${config.port} (${config.nodeEnv})`);
 });

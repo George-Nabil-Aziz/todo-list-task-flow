@@ -81,3 +81,41 @@ describe('auth routes', () => {
     expect(res.status).toBe(401);
   });
 });
+
+describe('auth route validation', () => {
+  test('register rejects a malformed email', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ email: 'not-an-email', password: 'secret1', username: 'alice' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/valid email/);
+  });
+
+  test('register normalizes email case and whitespace', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ email: '  Alice@Example.COM ', password: 'secret1', username: 'alice' });
+    expect(res.status).toBe(201);
+    expect(res.body.user.email).toBe('alice@example.com');
+  });
+
+  test('register rejects passwords longer than 72 characters', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ email: 'a@b.com', password: 'x'.repeat(73), username: 'alice' });
+    expect(res.status).toBe(400);
+  });
+
+  test('login with missing fields returns 400', async () => {
+    const res = await request(app).post('/api/auth/login').send({ email: 'a@b.com' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('password is required');
+  });
+
+  test('register never returns the password hash', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ email: 'a@b.com', password: 'secret1', username: 'alice' });
+    expect(res.body.user.passwordHash).toBeUndefined();
+  });
+});

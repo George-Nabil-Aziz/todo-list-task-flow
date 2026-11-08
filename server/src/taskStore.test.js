@@ -1,7 +1,11 @@
 const taskStore = require('./taskStore');
+const userStore = require('./userStore');
 
+// Tasks reference users by foreign key, so tests own users 1 and 2.
 beforeEach(() => {
-  taskStore.reset();
+  userStore.reset();
+  userStore.register('user1@example.com', 'hashed-password', 'user1');
+  userStore.register('user2@example.com', 'hashed-password', 'user2');
 });
 
 describe('taskStore', () => {

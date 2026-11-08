@@ -10,3 +10,7 @@
 node_modules/
 dist/
 *.log
+
+# Local env and SQLite data
+.env
+server/data/

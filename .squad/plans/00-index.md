@@ -10,3 +10,4 @@ One row per feature folder under `.squad/plans/`. `NN` continues as a global exe
 | add-username | [00-overview.md](add-username/00-overview.md) | 04–04 |
 | improve-todo-ui | [00-overview.md](improve-todo-ui/00-overview.md) | 05–06 |
 | dark-mode | [00-overview.md](dark-mode/00-overview.md) | 07–07 |
+| production-foundations | [00-overview.md](production-foundations/00-overview.md) | 08–12 |

@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-do-not-use-in-production';
+const { config } = require('./config');
+
+const JWT_SECRET = config.jwtSecret;
 const TOKEN_TTL = '1h';
 
 function signToken(user) {
@@ -15,7 +17,7 @@ function requireAuth(req, res, next) {
     return;
   }
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
+    const payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
     req.userId = payload.sub;
     next();
   } catch (err) {

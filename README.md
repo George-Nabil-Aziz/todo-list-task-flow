@@ -4,15 +4,16 @@
 ![Vite](https://img.shields.io/badge/Vite-5.3.1-646CFF?logo=vite\&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-Express%204.19.2-339933?logo=node.js\&logoColor=white)
 ![JWT](https://img.shields.io/badge/Auth-JWT%20%2B%20bcrypt-000000?logo=jsonwebtokens\&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-117%20passing-brightgreen)
+![SQLite](https://img.shields.io/badge/DB-SQLite-003B57?logo=sqlite\&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-145%20passing-brightgreen)
 
 A full-stack Todo List application built with **React, Vite, Node.js, and Express**.
 
-TaskFlow supports user authentication, personal task management, task priorities, dark mode, responsive UI, client-side validation, and automated testing.
+TaskFlow supports user authentication, personal task management, task priorities, dark mode, responsive UI, client- and server-side validation, persistent SQLite storage, and automated testing.
 
 The project was developed incrementally using a **story-driven development workflow with Squad Kit**, where each feature was planned, implemented, and tested as a separate story.
 
-> **Note:** Application data is currently stored in memory using JavaScript arrays. There is no database or persistent storage. All users and tasks are lost when the backend server restarts.
+> **Note:** Users and tasks are stored in a SQLite database file (`server/data/taskflow.db` by default), so data survives server restarts.
 
 ---
 
@@ -61,7 +62,10 @@ The project was developed incrementally using a **story-driven development workf
 | Validation      | Frontend form validation             | ✅ Implemented     |
 | Testing         | Backend automated tests              | ✅ Implemented     |
 | Testing         | Frontend automated tests             | ✅ Implemented     |
-| Database        | Persistent storage                   | ❌ Not implemented |
+| Database        | Persistent storage (SQLite)          | ✅ Implemented     |
+| Security        | Auth rate limiting, CORS, helmet     | ✅ Implemented     |
+| Validation      | Server-side schema validation (zod)  | ✅ Implemented     |
+| Operations      | Health check, request logging        | ✅ Implemented     |
 | Authentication  | Password reset                       | ❌ Not implemented |
 | Authentication  | Email verification                   | ❌ Not implemented |
 | Authentication  | OAuth / Social Login                 | ❌ Not implemented |
@@ -90,6 +94,12 @@ No Tailwind CSS, Redux, or UI component library is used.
 * **jsonwebtoken 9.0.2**
 * **bcryptjs 2.4.3**
 * **cors 2.8.5**
+* **better-sqlite3**: SQLite database
+* **zod**: request validation
+* **helmet**: security headers
+* **express-rate-limit**: auth brute-force protection
+* **pino-http**: request logging
+* **dotenv**: `.env` loading
 
 ### Testing
 
@@ -127,9 +137,11 @@ flowchart LR
         AuthRoutes["/api/auth"]
         Middleware["JWT Middleware"]
         TaskRoutes["/api/tasks"]
-        Users["User Store\nIn-Memory"]
-        Tasks["Task Store\nIn-Memory"]
+        Users["User Store"]
+        Tasks["Task Store"]
     end
+
+    DB[("SQLite\ntaskflow.db")]
 
     Browser --> UI
     UI --> API
@@ -142,6 +154,8 @@ flowchart LR
 
     AuthRoutes --> Users
     TaskRoutes --> Tasks
+    Users --> DB
+    Tasks --> DB
 ```
 
 ### Main Architectural Decisions
@@ -166,18 +180,20 @@ Task queries are scoped using the authenticated user's ID, preventing one user f
 
 Requests for another user's task return `404` rather than `403` to avoid revealing whether the task exists.
 
-#### In-Memory Storage
+#### SQLite Persistence
 
-The application currently uses two in-memory JavaScript arrays:
+Users and tasks live in a SQLite database accessed through `better-sqlite3` (`server/src/db.js`).
 
-```text
-users[]
-tasks[]
-```
+* The database file defaults to `server/data/taskflow.db` and can be moved with `DATABASE_PATH`.
+* Schema changes are plain SQL files in `server/migrations/`, applied in order on startup and recorded in a `schema_migrations` table.
+* Tasks reference users with a foreign key (`ON DELETE CASCADE`).
+* Tests run against a fresh in-memory database, so they never touch the real file.
 
-This keeps the project simple and focused on application behavior.
+The store modules (`userStore.js`, `taskStore.js`) kept their original interfaces, so the routes did not need to change shape.
 
-Data is lost whenever the backend process restarts.
+#### Request Pipeline
+
+Every request passes through: request logging (`pino-http`) → security headers (`helmet`) → CORS (restricted to `CORS_ORIGIN`) → JSON body parsing (10 kB limit) → rate limiting (auth routes only) → zod validation → route handler → central error handler.
 
 ---
 
@@ -221,9 +237,16 @@ TaskFlow/
 │           └── icons.jsx
 │
 ├── server/
+│   ├── .env.example
+│   ├── migrations/
+│   │   └── 001_init.sql
 │   └── src/
 │       ├── index.js
 │       ├── app.js
+│       ├── config.js
+│       ├── db.js
+│       ├── validation.js
+│       ├── errorHandler.js
 │       ├── authMiddleware.js
 │       ├── userStore.js
 │       ├── taskStore.js
@@ -263,8 +286,9 @@ Request:
 The server:
 
 * Validates the input.
-* Requires a password of at least 6 characters.
-* Requires a non-empty username.
+* Requires a valid email address (normalized to lowercase).
+* Requires a password of 6–72 characters.
+* Requires a non-empty username (max 50 characters).
 * Prevents duplicate email addresses.
 * Hashes passwords using bcrypt.
 * Returns a JWT after successful registration.
@@ -509,8 +533,13 @@ Task titles:
 * Must be provided.
 * Cannot be empty.
 * Cannot contain only whitespace.
+* Must be at most 200 characters.
 
 Frontend validation provides immediate feedback while the backend independently validates incoming requests.
+
+### Server-Side Validation
+
+Request bodies and route parameters are validated with **zod** schemas (`server/src/validation.js`) before reaching any handler. Invalid input returns `400` with the first issue as `{ "error": "..." }`. A non-numeric or non-positive task `:id` returns `400`. Malformed JSON returns `400`, and bodies over 10 kB return `413`.
 
 ---
 
@@ -522,6 +551,14 @@ Frontend validation provides immediate feedback while the backend independently 
 | ------ | -------------------- | ---- | --------------------- |
 | POST   | `/api/auth/register` | No   | Register a new user   |
 | POST   | `/api/auth/login`    | No   | Login and receive JWT |
+
+### System
+
+| Method | Endpoint      | Auth | Description                                          |
+| ------ | ------------- | ---- | ---------------------------------------------------- |
+| GET    | `/api/health` | No   | Returns `{ "status": "ok" }` if the DB is reachable |
+
+Unknown `/api/*` routes return a JSON `404`. Auth endpoints return `429` after too many attempts.
 
 ### Tasks
 
@@ -563,7 +600,9 @@ Response:
   "userId": 1,
   "title": "Complete project documentation",
   "status": "pending",
-  "priority": "high"
+  "priority": "high",
+  "createdAt": "2026-11-08T10:00:00.000Z",
+  "updatedAt": "2026-11-08T10:00:00.000Z"
 }
 ```
 
@@ -600,7 +639,16 @@ cd ../client
 npm install
 ```
 
-### 4. Start the backend
+### 4. Configure the backend (optional)
+
+```bash
+cd server
+cp .env.example .env
+```
+
+Defaults work for local development. The SQLite database is created automatically on first start.
+
+### 5. Start the backend
 
 Open a terminal:
 
@@ -621,7 +669,7 @@ Or use:
 npm start
 ```
 
-### 5. Start the frontend
+### 6. Start the frontend
 
 Open another terminal:
 
@@ -632,7 +680,7 @@ npm run dev
 
 Vite will start the frontend development server and proxy `/api` requests to the backend.
 
-### 6. Build for production
+### 7. Build for production
 
 ```bash
 cd client
@@ -658,7 +706,7 @@ cd server
 npm test
 ```
 
-**4 test files — 52 tests passing**
+**7 test files — 80 tests passing**
 
 ### Frontend
 
@@ -671,7 +719,7 @@ npm test
 
 ### Total
 
-**117 automated tests passing**
+**145 automated tests passing**
 
 The test suites cover:
 
@@ -687,6 +735,10 @@ The test suites cover:
 * Authentication errors
 * JWT-protected routes
 * Username handling
+* Database migrations, persistence, and cascades
+* Configuration and production secret checks
+* Security headers, CORS, rate limiting, and body limits
+* Server-side schema validation
 * Frontend validation
 * Theme switching
 * Theme persistence
@@ -701,21 +753,20 @@ The frontend production build also completes successfully.
 
 The backend supports the following environment variables:
 
-| Variable     | Default              | Description                         |
-| ------------ | -------------------- | ----------------------------------- |
-| `PORT`       | `4000`               | Express server port                 |
-| `JWT_SECRET` | Development fallback | Secret used to sign and verify JWTs |
+| Variable                    | Default                   | Description                                                |
+| --------------------------- | ------------------------- | ---------------------------------------------------------- |
+| `NODE_ENV`                  | `development`             | `development`, `production`, or `test`                     |
+| `PORT`                      | `4000`                    | Express server port                                        |
+| `JWT_SECRET`                | Development fallback      | JWT signing secret. **Required (32+ chars) in production** |
+| `DATABASE_PATH`             | `server/data/taskflow.db` | SQLite database file                                       |
+| `CORS_ORIGIN`               | `http://localhost:5173`   | Comma-separated allowed browser origins                    |
+| `AUTH_RATE_LIMIT_MAX`       | `10`                      | Auth attempts per IP per window                            |
+| `AUTH_RATE_LIMIT_WINDOW_MS` | `900000` (15 min)         | Rate-limit window                                          |
+| `LOG_LEVEL`                 | `info`                    | pino log level                                             |
 
-Example:
+Values are loaded from `server/.env` via `dotenv` (see `server/.env.example`). Real environment variables take precedence.
 
-```bash
-PORT=4000
-JWT_SECRET=your-secure-secret
-```
-
-There is currently no `.env` loader such as `dotenv`.
-
-For production, environment variables should be configured by the hosting environment.
+With `NODE_ENV=production`, the server **refuses to start** if `JWT_SECRET` is missing, shorter than 32 characters, or equal to the development fallback.
 
 ---
 
@@ -751,6 +802,11 @@ Verify
 | 06  | Visual Redesign     | SaaS-style UI, icons, skeleton loading      | ✅      |
 | 07  | Dark Mode           | Theme toggle and persistence                | ✅      |
 | —   | Frontend Validation | Auth and task form validation               | ✅      |
+| 08  | Database Persistence | SQLite storage with SQL migrations         | ✅      |
+| 09  | Configuration & Secrets | dotenv, fail-fast production secret     | ✅      |
+| 10  | HTTP Hardening      | helmet, restricted CORS, rate limit, body limit | ✅  |
+| 11  | Error Handling & Ops | Central error handler, logging, health check | ✅    |
+| 12  | Server Validation   | zod schemas for bodies and params           | ✅      |
 
 The planning artifacts are stored under:
 
@@ -815,18 +871,21 @@ AI assistance was used as a development tool, while the final implementation and
 * Backend validation
 * Automated frontend tests
 * Automated backend tests
+* SQLite persistence with migrations
+* Environment configuration with fail-fast production checks
+* Security headers, restricted CORS, auth rate limiting
+* Server-side schema validation
+* Central error handling, request logging, health check
 
 ### Current Limitations
 
 The following are intentionally not implemented:
 
-* Database persistence
 * Password reset
 * Email verification
 * OAuth / social login
 * Username editing
 * Username uniqueness
-* Rate limiting
 * Refresh tokens
 * CI/CD pipeline
 * Production deployment configuration
@@ -839,10 +898,7 @@ Potential future enhancements include:
 
 ### Database
 
-Replace the in-memory stores with a persistent database such as:
-
-* PostgreSQL
-* SQLite
+Move from SQLite to PostgreSQL for multi-instance deployments (migrations are plain SQL).
 
 ### Authentication
 
@@ -852,7 +908,6 @@ Add:
 * Email verification
 * Refresh tokens
 * OAuth / social login
-* Rate limiting
 
 ### Task Management
 
@@ -870,9 +925,7 @@ Add:
 
 * CI/CD
 * Production deployment
-* Environment-based configuration
-* Database migrations
-* Monitoring and logging
+* Monitoring and alerting
 
 ---
 
@@ -894,34 +947,28 @@ Plaintext passwords are never stored.
 
 ### JWT Secret
 
-A development fallback secret exists when `JWT_SECRET` is not configured.
-
-**A production deployment must always provide a strong `JWT_SECRET`.**
+A development fallback secret is used only outside production. With `NODE_ENV=production`, the server refuses to start without a strong `JWT_SECRET` (32+ characters). Tokens are verified with the `HS256` algorithm only.
 
 ### CORS
 
-CORS is currently configured without an origin restriction:
+CORS only allows the origins listed in `CORS_ORIGIN` (default `http://localhost:5173`).
 
-```javascript
-cors()
-```
+### Security Headers
 
-For production, allowed origins should be explicitly restricted.
+`helmet` sets standard security headers and removes `X-Powered-By`.
 
 ### Authentication Rate Limiting
 
-There is currently no rate limiting or brute-force protection on authentication endpoints.
+`/api/auth/*` allows 10 requests per IP per 15 minutes by default, then returns `429`. If the server runs behind a reverse proxy, Express's `trust proxy` setting must be configured so limits apply per client rather than per proxy.
 
-### In-Memory Storage
+### Storage
 
-All users and tasks are stored in process memory.
+Data lives in a single SQLite file. Back it up regularly, and move to PostgreSQL before running more than one server instance.
 
-This means:
+### Remaining Gaps
 
-* Data disappears after server restart.
-* Data cannot be shared between multiple server instances.
-* There is no database backup.
-* There is no durability guarantee.
+* The JWT is stored in `localStorage` (vulnerable to XSS). Refresh tokens and httpOnly cookies are planned.
+* No password reset or email verification yet.
 
 ---
 

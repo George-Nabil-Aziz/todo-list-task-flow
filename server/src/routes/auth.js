@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const userStore = require('../userStore');
 const { signToken } = require('../authMiddleware');
+const { schemas, validate } = require('../validation');
 
 const router = express.Router();
 const SALT_ROUNDS = 10;
@@ -18,13 +19,9 @@ function handleStoreError(err, res) {
   return false;
 }
 
-router.post('/register', async (req, res, next) => {
+router.post('/register', validate({ body: schemas.register }), async (req, res, next) => {
   try {
-    const { email, username, password } = req.body || {};
-    if (typeof password !== 'string' || password.length < 6) {
-      res.status(400).json({ error: 'password must be at least 6 characters' });
-      return;
-    }
+    const { email, username, password } = req.body;
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
     const user = userStore.register(email, passwordHash, username);
     const token = signToken(user);
@@ -34,15 +31,15 @@ router.post('/register', async (req, res, next) => {
   }
 });
 
-router.post('/login', async (req, res, next) => {
+router.post('/login', validate({ body: schemas.login }), async (req, res, next) => {
   try {
-    const { email, password } = req.body || {};
-    const user = userStore.findByEmail(email || '');
+    const { email, password } = req.body;
+    const user = userStore.findByEmail(email);
     if (!user) {
       res.status(401).json({ error: 'Invalid email or password' });
       return;
     }
-    const matches = await bcrypt.compare(password || '', user.passwordHash);
+    const matches = await bcrypt.compare(password, user.passwordHash);
     if (!matches) {
       res.status(401).json({ error: 'Invalid email or password' });
       return;

@@ -238,3 +238,55 @@ describe('tasks routes', () => {
     });
   });
 });
+
+describe('tasks route validation', () => {
+  test('a non-numeric id returns 400', async () => {
+    const res = await request(app)
+      .put('/api/tasks/abc')
+      .set('Authorization', authHeader)
+      .send({ title: 'x' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/id must be a positive integer/);
+  });
+
+  test('a non-positive id returns 400', async () => {
+    const res = await request(app).delete('/api/tasks/0').set('Authorization', authHeader);
+    expect(res.status).toBe(400);
+  });
+
+  test('a title longer than 200 characters returns 400', async () => {
+    const res = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', authHeader)
+      .send({ title: 'x'.repeat(201) });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/at most 200/);
+  });
+
+  test('a non-string title returns 400 with the existing message', async () => {
+    const res = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', authHeader)
+      .send({ title: 42 });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('title is required and cannot be empty or whitespace-only');
+  });
+
+  test('a null priority still defaults to medium', async () => {
+    const res = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', authHeader)
+      .send({ title: 'Buy milk', priority: null });
+    expect(res.status).toBe(201);
+    expect(res.body.priority).toBe('medium');
+  });
+
+  test('responses include timestamps', async () => {
+    const res = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', authHeader)
+      .send({ title: 'Buy milk' });
+    expect(res.body.createdAt).toEqual(expect.any(String));
+    expect(res.body.updatedAt).toEqual(expect.any(String));
+  });
+});
